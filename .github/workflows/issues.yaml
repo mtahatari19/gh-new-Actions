@@ -24,9 +24,9 @@ jobs:
           LABEL="${{ github.event.label.name || '' }}"
 
           TEXT="📬 *$ACTION* در *$REPO*\n"
-          TEXT+="• *عنوان:* $TITLE\n"
+          TEXT+="• *Title:* $TITLE\n"
           if [ -n "$LABEL" ]; then TEXT+="• *Label:* $LABEL\n"; fi
-          TEXT+="• *توسط:* $SENDER\n"
+          TEXT+="• *By:* $SENDER\n"
           TEXT+="🔗 $URL"
 
           {
