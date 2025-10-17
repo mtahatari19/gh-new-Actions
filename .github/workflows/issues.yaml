@@ -1,8 +1,45 @@
 name: Handle issues
-on: issues
-jobs: 
-    output-info: 
-        runs-on: ubuntu-latest
-        steps: 
-            - name: Output event details
-              run: echo "${{ toJSON(github.event) }}"
+on:
+  issues:
+    types: [opened, edited, closed, reopened, labeled, unlabeled]
+jobs:
+  notify-telegram:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Output event details
+        run: |
+          echo "::group::github.event"
+          echo '${{ toJson(github.event) }}'
+          echo "::endgroup::"
+
+      - name: Build message
+        id: msg
+        shell: bash
+        run: |
+          TITLE="${{ github.event.issue.title }}"
+          URL="${{ github.event.issue.html_url }}"
+          ACTION="${{ github.event.action }}"
+          REPO="${{ github.repository }}"
+          SENDER="${{ github.actor }}"
+          LABEL="${{ github.event.label.name || '' }}"
+
+          TEXT="📬 *$ACTION* در *$REPO*\n"
+          TEXT+="• *عنوان:* $TITLE\n"
+          if [ -n "$LABEL" ]; then TEXT+="• *Label:* $LABEL\n"; fi
+          TEXT+="• *توسط:* $SENDER\n"
+          TEXT+="🔗 $URL"
+
+          {
+            echo "text<<EOF"
+            echo "$TEXT"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Send to Telegram (action)
+        uses: appleboy/telegram-action@master
+        with:
+          to: ${{ secrets.TELEGRAM_CHAT_ID }}
+          token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          format: markdown
+          disable_web_page_preview: true
+          message: ${{ steps.msg.outputs.text }}
