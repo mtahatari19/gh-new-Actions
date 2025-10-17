@@ -2,6 +2,7 @@ name: Handle issues
 on:
   issues:
     types: [opened, edited, closed, reopened, labeled, unlabeled]
+
 jobs:
   notify-telegram:
     runs-on: ubuntu-latest
@@ -16,6 +17,8 @@ jobs:
         id: msg
         shell: bash
         run: |
+          set -euo pipefail
+
           TITLE="${{ github.event.issue.title }}"
           URL="${{ github.event.issue.html_url }}"
           ACTION="${{ github.event.action }}"
@@ -23,11 +26,14 @@ jobs:
           SENDER="${{ github.actor }}"
           LABEL="${{ github.event.label.name || '' }}"
 
-          TEXT="📬 *$ACTION* in *$REPO*\"
-          TEXT+="• *Title:* $TITLE\"
-          if [ -n "$LABEL" ]; then TEXT+="• *Label:* $LABEL\"; fi
-          TEXT+="• *By:* $SENDER\"
-          TEXT+="🔗 $URL"
+          TEXT=$(cat <<EOF
+          📬 *$ACTION* in *$REPO*
+          • *Title:* $TITLE
+          $( [ -n "$LABEL" ] && echo "• *Label:* $LABEL" )
+          • *By:* $SENDER
+          🔗 $URL
+          EOF
+          )
 
           {
             echo "text<<EOF"
