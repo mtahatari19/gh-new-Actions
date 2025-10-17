@@ -23,10 +23,10 @@ jobs:
           SENDER="${{ github.actor }}"
           LABEL="${{ github.event.label.name || '' }}"
 
-          TEXT="📬 *$ACTION* در *$REPO*\n"
-          TEXT+="• *Title:* $TITLE\n"
-          if [ -n "$LABEL" ]; then TEXT+="• *Label:* $LABEL\n"; fi
-          TEXT+="• *By:* $SENDER\n"
+          TEXT="📬 *$ACTION* in *$REPO*\"
+          TEXT+="• *Title:* $TITLE\"
+          if [ -n "$LABEL" ]; then TEXT+="• *Label:* $LABEL\"; fi
+          TEXT+="• *By:* $SENDER\"
           TEXT+="🔗 $URL"
 
           {
