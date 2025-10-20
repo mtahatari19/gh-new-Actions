@@ -5,7 +5,7 @@ jobs:
   ping:
     runs-on: [self-hosted, Linux, ARM]  
     steps:
-      - name: Show env
+      - name: Hello
         run: |
           uname -a
           echo "Hello from Raspberry Pi (ARM)!"
