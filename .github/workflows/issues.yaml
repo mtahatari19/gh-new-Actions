@@ -18,34 +18,40 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-
           TITLE="${{ github.event.issue.title }}"
           URL="${{ github.event.issue.html_url }}"
           ACTION="${{ github.event.action }}"
           REPO="${{ github.repository }}"
           SENDER="${{ github.actor }}"
           LABEL="${{ github.event.label.name || '' }}"
-
-          TEXT=$(cat <<EOF
-          📬 *$ACTION* in *$REPO*
-          • *Title:* $TITLE
-          $( [ -n "$LABEL" ] && echo "• *Label:* $LABEL" )
-          • *By:* $SENDER
-          🔗 $URL
-          EOF
+          TEXT=$(cat <<'EOF'
+*%ACTION%* in *%REPO%*
+• *Title:* %TITLE%
+%LABEL_LINE%
+• *By:* %SENDER%
+%URL%
+EOF
           )
-
+          escape_md () {
+            printf '%s' "$1" | sed -e 's/[\\*_{}\[\]()#\+\-\.\!]/\\&/g'
+          }
+          LABEL_LINE=""
+          if [ -n "$LABEL" ]; then
+            LABEL_ESCAPED=$(escape_md "$LABEL")
+            LABEL_LINE="• *Label:* $LABEL_ESCAPED"
+          fi
+          TEXT=${TEXT//%ACTION%/$(escape_md "$ACTION")}
+          TEXT=${TEXT//%REPO%/$(escape_md "$REPO")}
+          TEXT=${TEXT//%TITLE%/$(escape_md "$TITLE")}
+          TEXT=${TEXT//%SENDER%/$(escape_md "$SENDER")}
+          TEXT=${TEXT//%URL%/$(escape_md "$URL")}
+          TEXT=${TEXT//%LABEL_LINE%/$LABEL_LINE}
           {
             echo "text<<EOF"
             echo "$TEXT"
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
 
-      - name: Send to Telegram (action)
-        uses: appleboy/telegram-action@master
-        with:
-          to: ${{ secrets.TELEGRAM_CHAT_ID }}
-          token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          format: markdown
-          disable_web_page_preview: true
-          message: ${{ steps.msg.outputs.text }}
+      - name: Send to Telegram
+        env:
+          TELEGRAM_TOKEN: ${{ secret_

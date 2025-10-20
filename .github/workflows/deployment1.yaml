@@ -12,13 +12,22 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+          check-latest: true
           cache: 'npm'
+
+      - name: Print Node & NPM versions
+        run: |
+          which node
+          node -v
+          npm -v
 
       - name: Install dependencies
         run: npm ci
 
       - name: Lint
-        run: npm run lint
+        run: |
+          node -v
+          npm run lint
 
       - name: Test
         run: npm test
