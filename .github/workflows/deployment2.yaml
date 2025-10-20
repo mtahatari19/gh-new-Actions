@@ -2,7 +2,7 @@ name: Deployment Exercise 2
 on: push
 jobs:
     lint:
-        runs-on: ubuntu-latest
+        runs-on:  [self-hosted, Linux, ARM, raspberrypi]
         steps:
             - name: Get code
               uses: actions/checkout@v3 
@@ -12,7 +12,7 @@ jobs:
               run: npm run lint
     test:
            needs: lint        
-           runs-on: ubuntu-latest
+           runs-on:  [self-hosted, Linux, ARM, raspberrypi]
            steps:
             - name: Get code
               uses: actions/checkout@v3 
@@ -22,7 +22,7 @@ jobs:
               run : npm run test
     deploy:
         needs: test   
-        runs-on: ubuntu-latest
+        runs-on:  [self-hosted, Linux, ARM, raspberrypi]
         steps:
             - name: Get code
               uses: actions/checkout@v3 
