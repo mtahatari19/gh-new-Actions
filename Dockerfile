@@ -1,8 +1,9 @@
-FROM node:20-alpine
+FROM node:20-bullseye-slim
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci
+RUN npm ci --omit=dev
 COPY . .
-RUN npm run build || true
+ENV NODE_ENV=production
+ENV PORT=3000
 EXPOSE 3000
 CMD ["npm","start"]
