@@ -18,34 +18,41 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+
           TITLE="${{ github.event.issue.title }}"
           URL="${{ github.event.issue.html_url }}"
           ACTION="${{ github.event.action }}"
           REPO="${{ github.repository }}"
           SENDER="${{ github.actor }}"
           LABEL="${{ github.event.label.name || '' }}"
+
           TEXT=$(cat <<'EOF'
-*%ACTION%* in *%REPO%*
-• *Title:* %TITLE%
-%LABEL_LINE%
-• *By:* %SENDER%
-%URL%
-EOF
+          *%ACTION%* in *%REPO%*
+
+           • *Title:* %TITLE%
+             %LABEL_LINE%
+             *By:* %SENDER%
+             %URL%
+            EOF
           )
+
           escape_md () {
-            printf '%s' "$1" | sed -e 's/[\\*_{}\[\]()#\+\-\.\!]/\\&/g'
+            sed -E 's/([\\_*\[\]\(\)~`>#+\-=|{}\.!])/\\\1/g'
           }
+
           LABEL_LINE=""
           if [ -n "$LABEL" ]; then
-            LABEL_ESCAPED=$(escape_md "$LABEL")
+            LABEL_ESCAPED=$(printf '%s' "$LABEL" | escape_md)
             LABEL_LINE="• *Label:* $LABEL_ESCAPED"
           fi
-          TEXT=${TEXT//%ACTION%/$(escape_md "$ACTION")}
-          TEXT=${TEXT//%REPO%/$(escape_md "$REPO")}
-          TEXT=${TEXT//%TITLE%/$(escape_md "$TITLE")}
-          TEXT=${TEXT//%SENDER%/$(escape_md "$SENDER")}
-          TEXT=${TEXT//%URL%/$(escape_md "$URL")}
+
+          TEXT=${TEXT//%ACTION%/$(printf '%s' "$ACTION" | escape_md)}
+          TEXT=${TEXT//%REPO%/$(printf '%s' "$REPO"   | escape_md)}
+          TEXT=${TEXT//%TITLE%/$(printf '%s' "$TITLE" | escape_md)}
+          TEXT=${TEXT//%SENDER%/$(printf '%s' "$SENDER" | escape_md)}
+          TEXT=${TEXT//%URL%/$(printf '%s' "$URL" | escape_md)}
           TEXT=${TEXT//%LABEL_LINE%/$LABEL_LINE}
+
           {
             echo "text<<EOF"
             echo "$TEXT"
@@ -54,4 +61,13 @@ EOF
 
       - name: Send to Telegram
         env:
-          TELEGRAM_TOKEN: ${{ secret_
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          set -euo pipefail
+          API="https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage"
+          curl -sS -X POST "$API" \
+            -d "chat_id=${TELEGRAM_CHAT_ID}" \
+            -d "parse_mode=MarkdownV2" \
+            -d "disable_web_page_preview=true" \
+            --data-urlencode "text=${{ steps.msg.outputs.text }}"
