@@ -1,0 +1,14 @@
+services:
+  app:
+    image: ghcr.io/mtahatari19/gh-new-actions:${TAG:-latest}
+    container_name: gh-new-actions
+    restart: unless-stopped
+    ports:
+      - "9090:3000"
+    environment:
+      - PORT=3000
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:3000/"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
