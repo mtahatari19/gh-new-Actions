@@ -4,11 +4,9 @@ services:
     container_name: gh-new-actions
     restart: unless-stopped
     ports:
-      - "9090:3000"
-    environment:
-      - PORT=3000
+      - "9090:8080"
     healthcheck:
-      test: ["CMD", "curl", "-fsS", "http://localhost:3000/"]
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/"]
       interval: 15s
       timeout: 5s
       retries: 5
