@@ -27,13 +27,13 @@ jobs:
           LABEL="${{ github.event.label.name || '' }}"
 
           TEXT=$(cat <<'EOF'
-          *%ACTION%* in *%REPO%*
+           *%ACTION%* in *%REPO%*
 
            • *Title:* %TITLE%
-             %LABEL_LINE%
-             *By:* %SENDER%
-             %URL%
-            EOF
+           %LABEL_LINE%
+           • *By:* %SENDER%
+           %URL%
+           EOF
           )
 
           escape_md () {
@@ -66,7 +66,7 @@ jobs:
         run: |
           set -euo pipefail
           API="https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage"
-          curl -sS -X POST "$API" \
+          curl -fsS -X POST "$API" \
             -d "chat_id=${TELEGRAM_CHAT_ID}" \
             -d "parse_mode=MarkdownV2" \
             -d "disable_web_page_preview=true" \
