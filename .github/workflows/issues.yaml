@@ -1,42 +1,57 @@
 name: Handle issues
 on:
   issues:
-    types:
-      - opened
-      - edited
-      - closed
-      - reopened
-      - labeled
-      - unlabeled
+    types: [opened, edited, closed, reopened, labeled, unlabeled]
 
 jobs:
   notify-telegram:
     runs-on: [self-hosted, Linux, ARM, raspberrypi]
+    timeout-minutes: 5
     steps:
+      - name: Output event
+        run: |
+          echo "::group::github.event"
+          echo '${{ toJson(github.event) }}'
+          echo "::endgroup::"
+
       - name: Send to Telegram
         shell: bash
         env:
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          GH_EVENT_JSON: ${{ toJson(github.event) }}
+          GH_ACTION: ${{ github.event.action }}
+          GH_REPO: ${{ github.repository }}
+          GH_TITLE: ${{ github.event.issue.title }}
+          GH_URL: ${{ github.event.issue.html_url }}
+          GH_SENDER: ${{ github.actor }}
         run: |
           set -euo pipefail
-
-          TITLE="${{ github.event.issue.title }}"
-          URL="${{ github.event.issue.html_url }}"
-          ACTION="${{ github.event.action }}"
-          REPO="${{ github.repository }}"
-          SENDER="${{ github.actor }}"
-          LABEL="${{ github.event.label.name || '' }}"
-
-          TEXT=$(printf '%s\n%s\n%s\n%s\n%s\n%s\n' \
+          LABEL=""
+          if echo "$GH_EVENT_JSON" | grep -q '"label"'; then
+            LABEL=$(printf '%s' "$GH_EVENT_JSON" \
+              | sed -n 's/.*"label"[^{]*{[^}]*"name"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' \
+              | head -n1 || true)
+          fi
+          TEXT=$(printf '%s\n%s\n%s\n%s\n%s\n%s\n%s\n' \
             "Issue event" \
-            "Action: ${ACTION}" \
-            "Repo: ${REPO}" \
-            "Title: ${TITLE}" \
+            "Action: ${GH_ACTION}" \
+            "Repo: ${GH_REPO}" \
+            "Title: ${GH_TITLE}" \
+            "By: ${GH_SENDER}" \
             "Label: ${LABEL}" \
-            "URL: ${URL}")
-
+            "URL: ${GH_URL}")
           API="https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage"
-          curl -fsS -X POST "$API" \
+          set +e
+          RESP=$(curl -fsS -w "\nHTTP_CODE:%{http_code}\n" -X POST "$API" \
             -d "chat_id=${TELEGRAM_CHAT_ID}" \
-            --data-urlencode "text=${TEXT}"
+            --data-urlencode "text=${TEXT}" 2>&1)
+          CODE=$(printf '%s' "$RESP" | sed -n 's/^HTTP_CODE:\([0-9]\+\)$/\1/p')
+          set -e
+          echo "::group::telegram.response"
+          printf '%s\n' "$RESP"
+          echo "::endgroup::"
+          if [ "${CODE:-}" != "200" ] && [ "${CODE:-}" != "201" ]; then
+            echo "::error::Telegram API error (HTTP $CODE)"
+            exit 1
+          fi
